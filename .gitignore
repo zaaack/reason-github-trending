@@ -1,0 +1,6 @@
+node_modules
+lib
+public/bundle.js
+.merlin
+yarn-error.log
+npm-error.log
