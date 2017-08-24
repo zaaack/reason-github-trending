@@ -4,8 +4,8 @@ let post: string => Js.Json.t => (Js.Json.t => unit) => unit = [%bs.raw
   {|
   function (path, json, onDone) {
     fetch(path, {body: JSON.stringify(json), method: 'POST', headers: {'Content-Type': 'application/json'}})
-    .then(res => res.json())
-    .then(res => onDone(res), err => console.error('failed', err))
+    .then(function(res) {return res.json()})
+    .then(function(res) {return onDone(res)}, function (err) {return console.error('failed', err)})
   }
 |}
 ];

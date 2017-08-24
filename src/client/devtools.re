@@ -1,8 +1,6 @@
-
 /* let x = 10; */
-
-let register () => {
-  [%bs.raw{| (() => {
+let register () => [%bs.raw
+  {| (function () {
 
     window.devtoolsFormatters = window.devtoolsFormatters || [];
     window.devtoolsFormatters.push({
@@ -28,22 +26,21 @@ let register () => {
       body: function(value) {
         switch (value.$bs) {
           case "list":
-            return ["div", {style: "padding-left: 20px"}].concat(value.items.map(item => ["div", {}, ["object", {"object": item}]]))
+            return ["div", {style: "padding-left: 20px"}].concat(value.items.map(function (item) { ["div", {}, ["object", {"object": item}]] }))
           case "record":
-            return ["div", {style: "padding-left: 20px"}].concat(Object.keys(value.attributes).map(attr => {
+            return ["div", {style: "padding-left: 20px"}].concat(Object.keys(value.attributes).map(function (attr) {
               return ["div", {}, attr, ": ", ["object", {"object": value.attributes[attr]}]]
             }))
           case "variant":
-            return ["div", {style: "padding-left: 20px"}].concat(value.arguments.map(arg => [
+            return ["div", {style: "padding-left: 20px"}].concat(value.arguments.map(function (arg) { [
               "div",
               {},
               ["object", {"object": arg}]
-            ]))
+            ] }))
           default:return null
         }
       }
     })
   })()
-  |}];
-
-};
+  |}
+];
