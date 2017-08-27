@@ -1,18 +1,16 @@
-type person = {
-  id: int,
+type repo = {
   name: string,
-  age: int,
-  friends: list int
+  star_total: int,
+  fork_total: int,
+  star_recent: int,
+  desc: string,
+  language: string
 };
 
-type todo = {
-  text: string,
-  id: int,
-  completed: option int
+type repos = list repo;
+
+type error = {
+  status: int,
+  message: string,
+  stack: option string
 };
-
-type todos = list todo;
-
-type new_todo = string;
-
-type a = {aa: int};

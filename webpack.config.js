@@ -40,8 +40,9 @@ module.exports = {
     extensions: ['.re', '.ml', '.js']
   },
   devServer: {
+    host: "0.0.0.0",
     proxy: {
-      "/api": {
+      '/api': {
         target: "http://localhost:8000",
         secure: false,
         changeOrigin: true,

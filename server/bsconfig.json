@@ -21,7 +21,7 @@
   ],
   "entries": [{"kind": "native", "main": "Main"}],
   "bsc-flags": ["-w", "-40", "-w", "-30"],
-  "ocamlfind-dependencies": ["lwt", "lwt.unix", "cohttp", "cohttp.lwt", "yojson"],
+  "ocamlfind-dependencies": ["lwt", "lwt.unix", "cohttp", "cohttp.lwt", "yojson", "lambdasoup"],
   "bsc-flags": ["-bs-super-errors"],
   "reason": {"react-jsx": 2},
   "ppx-flags": [

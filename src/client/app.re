@@ -1,109 +1,83 @@
-open! Types;
-
-let str = ReasonReact.stringToElement;
-
-let style = ReactDOMRe.Style.make;
-
-module TodoItem = {
-  let component = ReasonReact.statelessComponent "Todo";
-  let make ::item ::onToggle ::onEdit _ => {
-    ...component,
-    render: fun _ =>
-      <div
-        className=Glamor.(
-                    css [
-                      backgroundColor "white",
-                      cursor "pointer",
-                      flexDirection "row",
-                      padding "10px",
-                      Selector ":hover" [backgroundColor "#eee"]
-                    ]
-                  )
-        onClick=onToggle>
-        <input
-          _type="checkbox"
-          checked=(item.completed !== None |> Js.Boolean.to_js_boolean)
-        />
-        <div style=(style flexBasis::"10px" ()) />
-        <Editor value=item.text placeholder="" onChange=onEdit />
-      </div>
-  };
-};
-
-let jsNow: unit => int = [%bs.raw "function() {return Date.now()}"];
-
-let toggleItem item update => {
-  let item =
-    item.completed === None ?
-      {...item, completed: Some (jsNow ())} : {...item, completed: None};
-  Api.updateItem item update
-};
-
-let editItem item text update =>
-  if (text == "") {
-    Api.removeItem item.id update
-  } else {
-    text !== item.text ? Api.updateItem {...item, text} update : ()
-  };
-
-module Todos = {
-  let component = ReasonReact.statefulComponent "Todos";
-  let url = "/api/todos";
-  type state = todos;
-  type data = todos;
-  let make ::data _ => {
-    ...component,
-    initialState: fun () => data,
-    render: fun {state, update} => {
-      let updateTodos = update (fun todos _ => ReasonReact.Update todos);
-      <div>
-        (
-          List.map
-            (
-              fun item =>
-                <TodoItem
-                  item
-                  key=(item.id |> string_of_int)
-                  onToggle=(fun _ => toggleItem item updateTodos)
-                  onEdit=(fun text => editItem item text updateTodos)
-                />
-            )
-            state |> Array.of_list |> ReasonReact.arrayToElement
-        )
-        <Editor
-          value=""
-          className=Glamor.(css [padding "10px 20px"])
-          onChange=(fun text => Api.addItem text updateTodos)
-          placeholder="Add an item"
-          clear=true
-        />
-      </div>
-    }
-  };
-};
-
-module LoadedTodos = Loader.F Todos;
-
-module Page = {
-  let component = ReasonReact.statelessComponent "Page";
-  let make _children => {
-    ...component,
-    render: fun _ =>
-      <div
-        className=Glamor.(
-                    css [alignSelf "center", margin "50px", width "300px"]
-                  )>
-        <div
-          className=Glamor.(
-                      css [margin "20px", textAlign "center", fontSize "1.3em"]
-                    )>
-          (str "A Nice Todo List")
-        </div>
-        <LoadedTodos />
-      </div>
-  };
-};
+open Actions;
+open Option;
 
 Devtools.register ();
 
-ReactDOMRe.renderToElementWithId <Page /> "index";
+let str = ReasonReact.stringToElement;
+let style = ReactDOMRe.Style.make;
+
+
+let module App = {
+  let component = ReasonReact.statelessComponent "App";
+  let handleChange value => ();
+
+  let fetchData dispatch language since => {
+    dispatch @@ ReposActions (FetchReposPending (since, language));
+    let request = Axios.getc "/api/trendings" (
+      Axios.makeConfig
+        params::{
+          "language": language,
+          "since": since |> since__to_json |> Obj.magic |> String.lowercase
+        } ()
+    );
+    request |> Js.Promise.then_ (fun res => {
+        let repos = Shared.Types.repos__from_json (res##data) |? [];
+        dispatch @@ ReposActions (FetchReposSuccess (since, language, repos));
+        Js.Promise.resolve ()
+      }) |> Js.Promise.catch (fun err => {
+        Js.log err;
+        dispatch @@ ReposActions (FetchReposError ({message: "Fetch Failed", status: 0, stack: None}));
+        Js.Promise.resolve ()
+      }) |> ignore
+  };
+  let dispatch = Reductive.Store.dispatch Store.store;
+  let initalState = (Reductive.Store.getState Store.store).repos;
+  fetchData dispatch initalState.language (switch initalState.since {
+    | Some since => since
+    | _ => Daily
+    });
+  exception UnknownSinceOption string;
+  let make state::(state: Store.app_state) ::dispatch _children => {
+    ...component,
+    render: fun {state:_state, update} => {
+      let state = state.repos;
+      Js.log2 "state" state;
+        <View style=(style maxWidth::"500px" margin::"0 auto" ())>
+          <Header
+            state=state
+            onLanguageChange=(fun value => fetchData dispatch (value |? "") (state.since |? Daily))
+            onSinceChange=(fun value => fetchData dispatch state.language (switch value {
+              | Some "Daily" => Daily
+              | Some "Monthly" => Monthly
+              | Some "Weekly" => Weekly
+              | Some x => raise (UnknownSinceOption x)
+              | None => Daily
+            }))
+          />
+        (switch state.state {
+        | Some `Pending => (
+           <View style=(style alignItems::"center" justifyContent::"center"  width::"100%" height::"400px"())>
+             <ActivityIndicator size=32.0 color=(200, 200, 200) />
+           </View>
+        )
+        | Some (`Error err) => <View style=(style color::"red" width::"100%" height::"400px" lineHeight::"400px" textAlign::"center" ())>(str err.message)</View>
+        | Some `Success => {
+          switch state {
+          | {repos: Some repos,
+            language,
+            since: Some since,
+            state} => <RepoList items=repos since=since />
+          | _ => ReasonReact.nullElement
+          }
+        }
+        | _ => ReasonReact.nullElement
+        })
+        </View>
+    }
+  };
+};
+module Provider = {
+  let make = Reductive.Provider.createMake Store.store;
+};
+
+ReactDOMRe.renderToElementWithId <Provider component=App.make /> "app";

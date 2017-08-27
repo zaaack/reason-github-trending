@@ -6,8 +6,10 @@
   "sources": [
     {
       "dir": "src",
-      "subdirs": [
-        "client",
+      "subdirs": [{
+          "dir": "client",
+          "subdirs": ["components"]
+        },
         "shared",
       ]
     }
@@ -21,6 +23,12 @@
   ],
   "bs-dependencies" : [
     "reason-react",
-    "bs-glamor"
+    "bs-glamor",
+    "bs-batteries",
+    "bs-axios",
+    "bs-webapi",
+    "reductive",
+    "immutable-re",
+    "reason-react-primitives"
   ]
 }
